@@ -9,7 +9,34 @@ import torch
 from urdf_parser_py.urdf import URDF
 
 
-class URDFRobotModel(object):
+class RobotSpec(object):
+    @property
+    def link_names(self):
+        raise NotImplementedError()
+
+    def get_body_parameters(self, i, link_name):
+        """
+        Returns: dict:
+            "joint_id"
+            "link_name"
+            "rot_angles"
+            "trans"
+            "joint_name"
+            "joint_type"
+            "joint_limits"
+            "joint_damping"
+            "joint_axis"
+            "mass"
+            "com"
+            "inertia_mat" - about center of mass
+        """
+        raise NotImplementedError()
+
+    def get_name_of_parent_body(self, link_name):
+        raise NotImplementedError()
+
+
+class URDFRobotModel(RobotSpec):
     def __init__(self, urdf_path, device="cpu"):
         self.robot = URDF.from_xml_file(urdf_path)
         self._device = torch.device(device)
@@ -20,12 +47,17 @@ class URDFRobotModel(object):
                 return i
         return -1
 
+    @property
+    def link_names(self):
+        return [link.name for link in self.robot.links]
+
     def get_name_of_parent_body(self, link_name):
         jid = self.find_joint_of_body(link_name)
         joint = self.robot.joints[jid]
         return joint.parent
 
-    def get_body_parameters_from_urdf(self, i, link):
+    def get_body_parameters_from_urdf(self, i, link_name):
+        link = self.robot.link_map[link_name]
         body_params = {}
         body_params["joint_id"] = i
         body_params["link_name"] = link.name

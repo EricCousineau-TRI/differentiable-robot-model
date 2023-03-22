@@ -73,11 +73,15 @@ for n in data_files:
 # dependencies
 install_requires = [
     "torch >= 1.6",
-    "pyquaternion >= 0.9.9",
+    # Not used?
+    # "pyquaternion >= 0.9.9",
+    # Only for examples.
     "hydra-core >= 1.0.3",
+    # Only for parsing.
     "urdf_parser_py >= 0.0.3",
-    "Sphinx >= 3.5.4",
-    "recommonmark >= 0.7.1",
+    # Only for docs?
+    # "Sphinx >= 3.5.4",
+    # "recommonmark >= 0.7.1",
 ]
 
 # run setup

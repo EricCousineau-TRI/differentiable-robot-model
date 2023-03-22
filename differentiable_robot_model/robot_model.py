@@ -17,9 +17,9 @@ from .rigid_body import (
 from .spatial_vector_algebra import SpatialMotionVec, SpatialForceVec
 from .urdf_utils import URDFRobotModel
 
-import diff_robot_data
+# import diff_robot_data
 
-robot_description_folder = diff_robot_data.__path__[0]
+# robot_description_folder = diff_robot_data.__path__[0]
 
 
 def tensor_check(function):
@@ -101,7 +101,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             torch.device(device) if device is not None else torch.device("cpu")
         )
 
-        self._urdf_model = URDFRobotModel(urdf_path=urdf_path, device=self._device)
+        self._model = URDFRobotModel(urdf_path=urdf_path, device=self._device)
         self._bodies = torch.nn.ModuleList()
         self._n_dofs = 0
         self._controlled_joints = []
@@ -111,9 +111,9 @@ class DifferentiableRobotModel(torch.nn.Module):
         # joint is at the beginning of a link
         self._name_to_idx_map = dict()
 
-        for (i, link) in enumerate(self._urdf_model.robot.links):
+        for (i, link_name) in enumerate(self._model.link_names):
             # Initialize body object
-            rigid_body_params = self._urdf_model.get_body_parameters_from_urdf(i, link)
+            rigid_body_params = self._model.get_body_parameters(i, link_name)
             body = DifferentiableRigidBody(
                 rigid_body_params=rigid_body_params, device=self._device
             )
@@ -131,7 +131,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
         # Once all bodies are loaded, connect each body to its parent
         for body in self._bodies[1:]:
-            parent_body_name = self._urdf_model.get_name_of_parent_body(body.name)
+            parent_body_name = self._model.get_name_of_parent_body(body.name)
             parent_body_idx = self._name_to_idx_map[parent_body_name]
             body.set_parent(self._bodies[parent_body_idx])
             self._bodies[parent_body_idx].add_child(body)
@@ -173,7 +173,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         for i in range(1, len(self._bodies)):
 
             body = self._bodies[i]
-            parent_name = self._urdf_model.get_name_of_parent_body(body.name)
+            parent_name = self._model.get_name_of_parent_body(body.name)
             # find the joint that has this link as child
             parent_body = self._bodies[self._name_to_idx_map[parent_name]]
 
@@ -261,7 +261,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         # forward pass to propagate accelerations from root to end-effector link
         for i in range(1, len(self._bodies)):
             body = self._bodies[i]
-            parent_name = self._urdf_model.get_name_of_parent_body(body.name)
+            parent_name = self._model.get_name_of_parent_body(body.name)
 
             parent_body = self._bodies[self._name_to_idx_map[parent_name]]
 
@@ -294,7 +294,7 @@ class DifferentiableRobotModel(torch.nn.Module):
 
             # pose x body_force => propagate to parent
             if i > 0:
-                parent_name = self._urdf_model.get_name_of_parent_body(body.name)
+                parent_name = self._model.get_name_of_parent_body(body.name)
                 parent_body = self._bodies[self._name_to_idx_map[parent_name]]
 
                 backprop_force = body.force.transform(joint_pose)
@@ -560,7 +560,7 @@ class DifferentiableRobotModel(torch.nn.Module):
             else:
                 body.u = -body.pA.dot(S)
 
-            parent_name = self._urdf_model.get_name_of_parent_body(body.name)
+            parent_name = self._model.get_name_of_parent_body(body.name)
             parent_idx = self._name_to_idx_map[parent_name]
 
             if parent_idx > 0:
@@ -603,7 +603,7 @@ class DifferentiableRobotModel(torch.nn.Module):
         # forward pass to propagate accelerations from root to end-effector link
         for i in range(1, len(self._bodies)):
             body = self._bodies[i]
-            parent_name = self._urdf_model.get_name_of_parent_body(body.name)
+            parent_name = self._model.get_name_of_parent_body(body.name)
             parent_idx = self._name_to_idx_map[parent_name]
             parent_body = self._bodies[parent_idx]
 
@@ -661,7 +661,7 @@ class DifferentiableRobotModel(torch.nn.Module):
                 lin_jac[:, :, i] = torch.cross(z_i, p_e - p_i, dim=-1)
                 ang_jac[:, :, i] = z_i
 
-            link_name = self._urdf_model.get_name_of_parent_body(link_name)
+            link_name = self._model.get_name_of_parent_body(link_name)
             joint_id = self._bodies[self._name_to_idx_map[link_name]].joint_id
 
         return lin_jac, ang_jac
