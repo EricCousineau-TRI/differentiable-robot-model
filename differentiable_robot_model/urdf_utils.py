@@ -6,10 +6,10 @@ TODO
 """
 import os
 import torch
-from urdf_parser_py.urdf import URDF
+# from urdf_parser_py.urdf import URDF
 
 
-class RobotSpec(object):
+class RobotModelSpec(object):
     @property
     def link_names(self):
         raise NotImplementedError()
@@ -36,7 +36,7 @@ class RobotSpec(object):
         raise NotImplementedError()
 
 
-class URDFRobotModel(RobotSpec):
+class URDFRobotModel(RobotModelSpec):
     def __init__(self, urdf_path, device="cpu"):
         self.robot = URDF.from_xml_file(urdf_path)
         self._device = torch.device(device)

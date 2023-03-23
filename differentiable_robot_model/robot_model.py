@@ -15,7 +15,7 @@ from .rigid_body import (
     DifferentiableRigidBody,
 )
 from .spatial_vector_algebra import SpatialMotionVec, SpatialForceVec
-from .urdf_utils import URDFRobotModel
+from .urdf_utils import RobotModelSpec, URDFRobotModel
 
 # import diff_robot_data
 
@@ -91,7 +91,7 @@ class DifferentiableRobotModel(torch.nn.Module):
     TODO
     """
 
-    def __init__(self, urdf_path: str, name="", device=None):
+    def __init__(self, model: object, name="", device=None):
 
         super().__init__()
 
@@ -101,7 +101,12 @@ class DifferentiableRobotModel(torch.nn.Module):
             torch.device(device) if device is not None else torch.device("cpu")
         )
 
-        self._model = URDFRobotModel(urdf_path=urdf_path, device=self._device)
+        if isinstance(model, str):
+            urdf_path = model
+            model = URDFRobotModel(urdf_path=urdf_path, device=self._device)
+        assert isinstance(model, RobotModelSpec)
+
+        self._model = model
         self._bodies = torch.nn.ModuleList()
         self._n_dofs = 0
         self._controlled_joints = []
